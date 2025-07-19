@@ -1,0 +1,192 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You will receive a block of emails from the last 24 hours.\n\nYour tasks:\n1. Group the emails into a small number of main topics or categories (for example: job opportunities, personal, promotions, events, financial, etc.).\n2. For each topic, write a short summary (1-2 sentences) explaining what the emails in this group are about.\n3. Under each topic, list the relevant emails. For each email, include the subject, sender, and a one-sentence summary.\n4. Do not repeat the same email in multiple topics.\n5. At the end, if any emails don't fit into any topic, put them in a section called \"Other\".\n\n**Format your answer as clean, simple HTML for direct use in an email (do NOT use markdown, do NOT use asterisks or hashtags). Use proper headings and lists.**\n\nHere are the emails:\n{{ $json[\"allEmailsText\"] }}\n",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.1,
+      "position": [
+        384,
+        0
+      ],
+      "id": "8f00db42-9c9b-43d0-aa75-ec5ca056daca",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        464,
+        176
+      ],
+      "id": "8fcf1dc9-ae4a-4ef3-94ab-8bb5aa11bcaa",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "YOUR_OPENAI_ID",
+          "name": "YOUR_OPENAI_NAME"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "Shaharfar16@gmail.com",
+        "subject": "📝 Daily Email Summary",
+        "message": "=<html>\n  <head>\n    <meta charset=\"UTF-8\">\n    <style>\n      body {\n        font-family: Arial, sans-serif;\n        color: #222;\n        background: #f7f7f7;\n      }\n      .container {\n        background: #fff;\n        border-radius: 10px;\n        padding: 24px;\n        max-width: 680px;\n        margin: 30px auto;\n        box-shadow: 0 2px 8px rgba(60,60,60,0.08);\n      }\n      h2 {\n        color: #3578e5;\n        margin-top: 0;\n      }\n      .summary-list {\n        margin-top: 18px;\n        margin-bottom: 30px;\n      }\n      .important {\n        color: #d32f2f;\n        font-weight: bold;\n      }\n      .not-important {\n        color: #bbb;\n      }\n      .item {\n        margin-bottom: 16px;\n        padding-bottom: 10px;\n        border-bottom: 1px solid #eee;\n      }\n      .section-title {\n        font-size: 18px;\n        margin-top: 28px;\n        color: #3578e5;\n        font-weight: bold;\n        border-bottom: 2px solid #3578e5;\n        display: inline-block;\n        padding-bottom: 4px;\n      }\n      ul {\n        padding-left: 20px;\n      }\n    </style>\n  </head>\n  <body>\n    <div class=\"container\">\n      <h2>📝 Daily Email Summary</h2>\n      <div style=\"background: #fffbe5; border: 1px solid #ffd700; color: #8a6d00; padding: 12px 18px; border-radius: 6px; margin-bottom: 18px; font-size: 15px;\">\n        <strong>Notice:</strong> This summary includes only emails that were marked as important by an automatic process.<br>\n        <b>Some important emails might be missing!</b><br>\n        Always review your inbox to make sure you don’t miss anything critical. The AI may sometimes make mistakes.\n      </div>\n      <div class=\"section-title\">Full Summary</div>\n      <div class=\"summary-list\">\n<div class=\"summary-list\">\n  {{ $json[\"output\"] }}\n</div>\n      </div>\n    </div>\n  </body>\n</html>\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        752,
+        0
+      ],
+      "id": "041bba85-9753-444f-9cc6-839c731d87bf",
+      "name": "Send a message",
+      "webhookId": "7fb17911-2106-41d1-a01f-b206d1966fa0",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "YOUR_GMAIL_ID",
+          "name": "YOUR_GMAIL_NAME"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "returnAll": true,
+        "filters": {
+          "receivedAfter": "={{ (Date.now() - 24*60*60*1000) }}\n"
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        -96,
+        0
+      ],
+      "id": "379636d0-18d5-44b5-950a-54651496d1eb",
+      "name": "Get many messages",
+      "webhookId": "91e782ac-7df6-498d-ab39-d4c6db06bee5",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "YOUR_GMAIL_ID",
+          "name": "YOUR_GMAIL_NAME"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "let summaryText = '';\nfor (let item of items) {\n  summaryText += `Subject: ${item.json.Subject}\\nFrom: ${item.json.From}\\nSnippet: ${item.json.snippet}\\n\\n`;\n}\nreturn [{\n  json: {\n    allEmailsText: summaryText\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        160,
+        0
+      ],
+      "id": "a014e245-08b5-4cd7-ac98-fe403bcd7fb0",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 7
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -304,
+        0
+      ],
+      "id": "0b2dc6bc-9e5f-48ff-9ae4-9e28455813bb",
+      "name": "Schedule Trigger"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many messages": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get many messages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "8b5a1e3d-a1a7-47ad-a99c-c59f31857c38",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "4b90311a05a8936eae952371f3a17046fc001fef31af26cdb1446e28cb046eb7"
+  },
+  "id": "Met6xEK8NmbsduCE",
+  "tags": []
+}
